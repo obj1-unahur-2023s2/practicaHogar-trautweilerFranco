@@ -1,21 +1,41 @@
 import Habitaciones.*
-class Familia{
-	const familia = []
+class Persona {
+	const property edad
+	var property tieneHabilidadesDeCocina
+	var habitacionDondeEsta = null
+
+	method habitacionDondeEsta() = habitacionDondeEsta
+
+	method entrar(habitacion) {
+		if (not habitacion.puedeEntrar(self)) {
+			self.error("Donde vas amigo??")
+		}
+		habitacion.ingresar(self)
+		habitacionDondeEsta = habitacion
+	}	
+
+	method nivelConfortTotal(casa) = casa.habitaciones().sum { hab => hab.confort(self) }
+	method seSienteAGusto(casa, familia)
 }
 
-class Persona inherits Familia{
-	var property edad
-	var sabeCocinar
-	var confort
-	
-	method confortApo(unaHabitacion){
-		confort += unaHabitacion.confortAportado(self)
+
+class Obsesive inherits Persona {
+	override method seSienteAGusto(casa, familia) {
+		return casa.habitaciones().any { hab => hab.puedeEntrar(self) }
+		and casa.habitaciones().all { hab => hab.ocupantes().size() <= 2 }
 	}
-	method esBebe(){
-		return self.edad()<=4
+}
+
+class Golose inherits Persona {
+	override method seSienteAGusto(casa, familia) {
+		return casa.habitaciones().any { hab => hab.puedeEntrar(self) }
+		and casa.habitaciones().any {hab => hab.hayAlgunCocinere()}
 	}
-	method sabeCocinar() = sabeCocinar
-	method aprenderACocinar(){
-		sabeCocinar = true
+}
+
+class Sencille inherits Persona {
+	override method seSienteAGusto(casa, familia) {
+		return casa.habitaciones().any { hab => hab.puedeEntrar(self) }
+		and casa.habitaciones().size() > familia.integrantes().size()
 	}
 }

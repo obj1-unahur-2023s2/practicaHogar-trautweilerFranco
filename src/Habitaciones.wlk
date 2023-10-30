@@ -1,91 +1,79 @@
 import Personas.*
-
-class Casa {
-	const estan = []
-	const habitaciones = []
-	method confortAportado(unaPersona) = 10
-	method estaLaPersonaEnLaHabitacion(unaPersona){estan.contains(unaPersona)}
-	method salirDeHabitacion(unaPersona){estan.remove(unaPersona)}
-	method puedeEntrar(unaPersona) = true
-	method entrarEnHabitacion(unaPersona){if (self.puedeEntrar(unaPersona)){estan.add(unaPersona)}}
-	method cantidadDeGente(){return estan.size()}
-	
-	method todasTieneUno(){
-		habitaciones.all({p =>p.cantidadDeGente() >= 1})
+class Habitacion {
+	const property ocupantes = #{}	
+	method confort(persona) { return 10 }
+	method puedeEntrar(persona) { 
+		return ocupantes.isEmpty() or self.puedeEntrarConGente(persona)
 	}
+
+	method puedeEntrarConGente(persona)
+
+	method estaPresente(persona) = ocupantes.contains(persona)
+
+	method estaOcupada() = not ocupantes.isEmpty()
+
+	method ocupanteMasViejo() = ocupantes.max { pers => pers.edad() }
+	method ingresar(persona) {if(self.puedeEntrar(persona)) ocupantes.add(persona)}
+	method hayAlgunCocinere() = ocupantes.any {pers => pers.tieneHabilidadesDeCocina()}
 }
 
-class UsoGeneral inherits Casa{
-	override method confortAportado(unaPersona) = 10
-	override method entrarEnHabitacion(unaPersona){
-		estan.add(unaPersona)
-	}
-	override method salirDeHabitacion(unaPersona){
-		if(!self.estaLaPersonaEnLaHabitacion(unaPersona)){
-			self.error("no esta en la habitacion")
+class UsoGeneral inherits Habitacion {
+	override method puedeEntrarConGente(persona) = true
+}
+
+
+class Dormitorio inherits Habitacion {
+	const duenios = #{}
+
+	method registrarDuenio(pers) { duenios.add(pers) }
+	override method confort(persona) {
+		if (self.esDuenio(persona)) {
+			return super(persona) + (10 / duenios.size())
 		} else {
-			estan.remove(unaPersona)
+			return super(persona) 
 		}
+	}
+
+	override method puedeEntrarConGente(persona) {
+		return self.esDuenio(persona) or duenios.all { duenio => self.estaPresente(duenio) }
+	}
+
+	// me dice si persona es o no uno de mis duenios
+	method esDuenio(persona) {
+		return duenios.contains(persona)
 	}
 }
 
-class Banios inherits Casa {
-	
-	override method confortAportado(unaPersona){
-		return if(unaPersona.edad() <= 4){super(unaPersona) + 2}else{super(unaPersona) + 4}
-		}
-	override method puedeEntrar(unaPersona){
-		return not estan.any({p => unaPersona.esBebe()})
+
+class Banio inherits Habitacion {
+	override method confort(persona) {
+		return super(persona) + (if (persona.edad() <= 4) 2 else 4)
+	}	
+	override method puedeEntrarConGente(persona) {
+		return ocupantes.any { pers => pers.edad() <= 4 }
 	}
-	
 }
 
-class Dormitorios inherits Casa {
-	const duermen = []
-	
-	override method confortAportado(unaPersona){
-		return if(self.estaLaPersonaDurmiendo(unaPersona)){
-			super(unaPersona) + 10 / self.cantidadDeGente()
+
+class Cocina inherits Habitacion {
+	var property metrosCuadrados
+
+	override method confort(persona) {
+		const extra = if (persona.tieneHabilidadesDeCocina()) {
+			metrosCuadrados * (valoresHabitaciones.porcentajeConfortCocina() / 100)
 		} else {
-			super(unaPersona)
+			0
 		}
-	}
-	
-	override method cantidadDeGente(){
-		return duermen.size()
-	}
-	
-	override method puedeEntrar(unaPersona){
-		return (estan.all({o => self.estaLaPersonaDurmiendo(o)}))
-	}
-		
-	method estaLaPersonaDurmiendo(unaPersona){
-		return duermen.contains(unaPersona)
+		return super(persona) + extra
+	}	
+	override method puedeEntrarConGente(persona) {
+		return not persona.tieneHabilidadesDeCocina() 
+			or not ocupantes.any { pers => pers.tieneHabilidadesDeCocina() }
 	}
 }
 
-class Cocina inherits Casa {
-	
-	const property metrosCuadrados
-	
-	override method confortAportado(unaPersona){
-		return if(unaPersona.sabeCocinar()){
-			super(unaPersona) + metrosCuadrados * valorModificado.valor() 
-		} else {
-			super(unaPersona)
-		}
-	}
-	
-	method hayChef(){
-		return estan.any({p => p.sabeCocinar()})
-	}
-	
-	override method puedeEntrar(unaPersona){
-		return !self.hayChef()
-	}
-	
-}
 
-object valorModificado{
-	var property valor = 0.1 
+
+object valoresHabitaciones {
+	var property porcentajeConfortCocina = 10
 }
